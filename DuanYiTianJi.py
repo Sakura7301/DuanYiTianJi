@@ -13,15 +13,16 @@ from plugins import *
 from config import conf  
 
 @plugins.register(  
-    name="DuanYiTianJi",   
-    desc="DuanYiTianJi 64 trigrams image",   
-    version="1.0",   
-    author="sakura7301",   
-    desire_priority=99  
+    name="DuanYiTianJi",  # 插件名称  
+    desire_priority=99,  # 插件优先级  
+    hidden=False,  # 是否隐藏  
+    desc="DuanYiTianJi 64 trigrams image",  # 插件描述  
+    version="1.0",  # 插件版本  
+    author="sakura7301",  # 作者  
 )  
-class DuanYiTianJi:  
+class DuanYiTianJi(Plugin):  
     def __init__(self):  
-        super().__init__()  # 确保调用父类的初始化  
+        super().__init__()  # 调用父类的初始化  
         self.GUA_MAPPING = {  
             "乾": "乾为天",  
             "坤": "坤为地",  
@@ -88,47 +89,48 @@ class DuanYiTianJi:
             "泽火": "泽火革",  
             "泽水": "泽水困"  
         }  
+        # 注册处理上下文的事件  
         self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context  
-        logger.info("[DuanYiTianJi] inited")  
+        logger.info("[DuanYiTianJi] 插件初始化完毕")  
 
     def GuaTuRequest(self, query):  
+        """检查输入查询是否包含"卦图"关键词"""  
         divination_keywords = ['卦图']  
         return any(keyword in query for keyword in divination_keywords)  
 
     def GuaTuReDailyRequest(self, query):  
+        """检查输入查询是否包含"每日一卦"关键词"""  
         divination_keywords = ['每日一卦']  
         return any(keyword in query for keyword in divination_keywords)  
 
     def GuaTu(self, input_text):  
-        """  
-        根据输入文本读取对应的卦图  
-    
-        参数:  
-        input_text (str): 包含卦图信息的文本，可以是数字、卦名或卦名前缀  
-    
-        返回:  
-        bytes: 图片的二进制数据  
-        """  
+        """根据输入文本读取对应的卦图"""  
         try:  
             input_text = input_text.replace('　', ' ').strip()  
-            gua_dir = "./image"  
-            files = os.listdir(gua_dir)  
-            input_text = input_text.replace('卦图', '').strip()  
+            gua_dir = "./plugins/DuanYiTianJi/image"  
+            current_directory = os.getcwd()  
+            logger.debug(f"current_directory: {current_directory}")
+            logger.debug(f"[DuanYiTianJi] 查找卦图目录: {gua_dir}")  
+            files = os.listdir(gua_dir)  # 列出卦图目录中的所有文件  
+            input_text = input_text.replace('卦图', '').strip()  # 去掉"卦图"关键词  
             target_file = None  
             gua_name = None  
-            
+
+            # 正则匹配数字  
             number_match = re.search(r'\d+', input_text)  
             if number_match:  
                 number = int(number_match.group())  
                 if 1 <= number <= 64:  
-                    prefix = f"{number:02d}_"  
+                    prefix = f"{number:02d}_"  # 构造文件前缀  
                     for file in files:  
                         if file.startswith(prefix):  
                             target_file = file  
                             break  
-            
+            logger.debug(f"target_file: {target_file}")
+
             if not target_file:  
                 search_text = input_text.replace(' ', '')  
+                # 处理卦名称  
                 if len(search_text) >= 1 and search_text[0] in self.GUA_MAPPING:  
                     gua_name = self.GUA_MAPPING[search_text[0]]  
                 elif len(search_text) >= 2 and search_text[:2] in self.GUA_MAPPING:  
@@ -142,9 +144,11 @@ class DuanYiTianJi:
                             break  
             
             if target_file is None:  
+                logger.warning(f"找不到与 '{input_text}' 匹配的卦图")  
                 raise FileNotFoundError(f"找不到与 '{input_text}' 匹配的卦图")  
                 
             image_path = os.path.join(gua_dir, target_file)  
+            logger.info(f"image_path:{image_path}")
             with Image.open(image_path) as img:  
                 image_io = io.BytesIO()  
                 img.save(image_io, format='PNG')  
@@ -153,21 +157,19 @@ class DuanYiTianJi:
                 return image_io  
                 
         except Exception as e:  
-            logger.info(f"错误：{str(e)}")  
+            logger.error(f"获取卦图时出现错误：{str(e)}")  
             return None  
 
     def GuaTuNum(self):  
-        """  
-        根据数字（1-64）读取对应的卦图  
-    
-        返回:  
-        bytes: 图片的二进制数据，如果出错返回None  
-        """  
+        """根据生成的随机数字（1-64）读取对应的卦图"""  
         try:  
             current_time = time.time()  
             microseconds = int(str(current_time).split('.')[1][:6])  
-            gen_random_num = microseconds % 64 + 1  
-            gua_dir = "./image"   
+            gen_random_num = microseconds % 64 + 1  # 生成随机数字  
+            gua_dir = "./plugins/DuanYiTianJi/image"   
+            current_directory = os.getcwd()  
+            logger.debug(f"current_directory: {current_directory}")
+            logger.debug(f"[DuanYiTianJi] 查找卦图目录: {gua_dir}")   
             files = os.listdir(gua_dir)  
             prefix = f"{gen_random_num:02d}_"  
             target_file = None  
@@ -177,6 +179,7 @@ class DuanYiTianJi:
                     break  
 
             if target_file is None:  
+                logger.warning(f"找不到序号为 {gen_random_num} 的卦图")  
                 raise FileNotFoundError(f"找不到序号为 {gen_random_num} 的卦图")  
                 
             image_path = os.path.join(gua_dir, target_file)  
@@ -188,34 +191,37 @@ class DuanYiTianJi:
                 return image_io  
                 
         except Exception as e:  
-            logger.error(f"错误：{str(e)}")  
+            logger.error(f"获取随机卦图时出现错误：{str(e)}")  
             return None  
 
     def on_handle_context(self, e_context: EventContext):  
+        """处理上下文事件"""  
         if e_context["context"].type not in [ContextType.TEXT]:  
+            logger.debug("[DuanYiTianJi] 上下文类型不是文本，无需处理")  
             return  
         
         content = e_context["context"].content.strip()  
-        logger.debug("[DuanYiTianJi] on_handle_context. content: %s" % content)  
+        logger.debug(f"[DuanYiTianJi] 处理上下文内容: {content}")  
 
         if self.GuaTuRequest(content):  
-            logger.info("[DuanYiTianJi] 每日一卦")  
+            logger.info("[DuanYiTianJi] 用户请求每日一卦")  
             reply = Reply()  
-            image = self.GuaTu(content)  
+            image = self.GuaTuNum(content)  # 获取卦图  
             reply.type = ReplyType.IMAGE if image else ReplyType.TEXT  
             reply.content = image if image else "未找到卦图"  
             e_context['reply'] = reply  
             e_context.action = EventAction.BREAK_PASS  # 事件结束，并跳过处理context的默认逻辑  
 
         elif self.GuaTuReDailyRequest(content):  
-            logger.info("[DuanYiTianJi] 卦图")  
+            logger.info("[DuanYiTianJi] 用户请求卦图")  
             reply = Reply()  
-            image = self.GuaTu(content)  
+            image = self.GuaTu(content)  # 获取卦图  
             reply.type = ReplyType.IMAGE if image else ReplyType.TEXT  
             reply.content = image if image else "未找到卦图"  
             e_context['reply'] = reply  
             e_context.action = EventAction.BREAK_PASS  # 事件结束，并跳过处理context的默认逻辑  
 
     def get_help_text(self, **kwargs):  
+        """获取帮助文本"""  
         help_text = "请按照以下格式：\n[每日一卦]：回复随机卦图\n[卦图+卦名]回复指定卦图\n"  
         return help_text
