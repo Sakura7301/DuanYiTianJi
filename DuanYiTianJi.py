@@ -3,9 +3,12 @@ import io
 import re  
 import time  
 from PIL import Image  
+from plugins import *
 from common.log import logger  
 
-@plugins.register(name="DuanYiTianJi", desc="DuanYiTianJi 64 trigrams image", version="0.1", author="lanvent", desire_priority= -1)
+
+
+@plugins.register(name="DuanYiTianJi", desc="DuanYiTianJi 64 trigrams image", version="1.0", author="lanvent", desire_priority= 99)
 class DuanYiTianJi:  
     def __init__(self):  
         self.GUA_MAPPING = {  
@@ -73,7 +76,7 @@ class DuanYiTianJi:
             "泽雷": "泽雷随",  
             "泽火": "泽火革",  
             "泽水": "泽水困"  
-        }
+        }  
         self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
         logger.info("[DuanYiTianJi] inited")
 
@@ -97,7 +100,7 @@ class DuanYiTianJi:
         """  
         try:  
             input_text = input_text.replace('　', ' ').strip()  
-            gua_dir = "./image" 
+            gua_dir = "./image"
             files = os.listdir(gua_dir)  
             input_text = input_text.replace('卦图', '').strip()  
             target_file = None  
@@ -153,7 +156,7 @@ class DuanYiTianJi:
             current_time = time.time()  
             microseconds = int(str(current_time).split('.')[1][:6])  
             gen_random_num = microseconds % 64 + 1  
-            gua_dir = self.config.get("duan_yi_tian_ji_image_path")  
+            gua_dir = "./image" 
             files = os.listdir(gua_dir)  
             prefix = f"{gen_random_num:02d}_"  
             target_file = None  
@@ -181,29 +184,19 @@ class DuanYiTianJi:
         if e_context['context'].type != ContextType.TEXT:
             return
         content = e_context['context'].content
-        if GuaTuRequest(content):
+        if self.GuaTuRequest(content):
             reply = Reply()
             reply.type = ReplyType.IMAGE
-            reply.content = GuaTu(content)
+            reply.content = self.GuaTu(content)
             e_context['reply'] = reply
             e_context.action = EventAction.BREAK_PASS # 事件结束，并跳过处理context的默认逻辑
-        elif GuaTuReDailyRequest(content):
+        elif self.GuaTuReDailyRequest(content):
             reply = Reply()
             reply.type = ReplyType.IMAGE
-            reply.content = GuaTuNum()
+            reply.content = self.GuaTuNum()
             e_context['reply'] = reply
             e_context.action = EventAction.BREAK_PASS # 事件结束，并跳过处理context的默认逻辑
-        else:
-            # 不处理该事件
-            return
-        # 测试
-        if content == "Hello":
-            reply = Reply()
-            reply.type = ReplyType.TEXT
-            msg:ChatMessage = e_context['context']['msg']
-            if e_context['context']['isgroup']:
-                reply.content = f"Hello, {msg.actual_user_nickname} from {msg.from_user_nickname}"
-            else:
-                reply.content = f"Hello, {msg.from_user_nickname}"
-            e_context['reply'] = reply
-            e_context.action = EventAction.BREAK_PASS # 事件结束，并跳过处理context的默认逻辑
+
+    def get_help_text(self, **kwargs):
+        help_text = "请按照以下格式：\n[每日一卦]：回复随机卦图\n[卦图+卦名]回复指定卦图\n"
+        return help_text
