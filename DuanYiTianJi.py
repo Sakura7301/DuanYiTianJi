@@ -1,7 +1,8 @@
 import os  
 import io  
 import re  
-import time  
+import time
+import plugins
 from PIL import Image  
 from plugins import *
 from common.log import logger  
