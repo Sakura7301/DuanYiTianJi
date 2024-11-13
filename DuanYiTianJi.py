@@ -203,16 +203,16 @@ class DuanYiTianJi(Plugin):
         content = e_context["context"].content.strip()  
         logger.debug(f"[DuanYiTianJi] 处理上下文内容: {content}")  
 
-        if self.GuaTuRequest(content):  
+        if self.GuaTuReDailyRequest(content):  
             logger.info("[DuanYiTianJi] 用户请求每日一卦")  
             reply = Reply()  
-            image = self.GuaTuNum(content)  # 获取卦图  
+            image = self.GuaTuNum()  # 获取卦图  
             reply.type = ReplyType.IMAGE if image else ReplyType.TEXT  
             reply.content = image if image else "未找到卦图"  
             e_context['reply'] = reply  
             e_context.action = EventAction.BREAK_PASS  # 事件结束，并跳过处理context的默认逻辑  
 
-        elif self.GuaTuReDailyRequest(content):  
+        elif self.GuaTuRequest(content):  
             logger.info("[DuanYiTianJi] 用户请求卦图")  
             reply = Reply()  
             image = self.GuaTu(content)  # 获取卦图  
