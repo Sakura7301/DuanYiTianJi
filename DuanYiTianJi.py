@@ -223,5 +223,5 @@ class DuanYiTianJi(Plugin):
 
     def get_help_text(self, **kwargs):  
         """获取帮助文本"""  
-        help_text = "请按照以下格式：\n[每日一卦]：回复随机卦图\n[卦图+卦名]回复指定卦图\n"  
+        help_text = "请按照以下格式：\n[每日一卦]：回复随机卦图\n[卦图+卦名]：回复指定卦图\n"  
         return help_text
