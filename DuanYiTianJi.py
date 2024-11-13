@@ -1,17 +1,27 @@
+# encoding:utf-8  
+
 import os  
 import io  
 import re  
-import time
-import plugins
+import time  
+import plugins  
 from PIL import Image  
-from plugins import *
+from bridge.context import ContextType  
+from bridge.reply import Reply, ReplyType  
 from common.log import logger  
+from plugins import *  
+from config import conf  
 
-
-
-@plugins.register(name="DuanYiTianJi", desc="DuanYiTianJi 64 trigrams image", version="1.0", author="lanvent", desire_priority= 99)
+@plugins.register(  
+    name="DuanYiTianJi",   
+    desc="DuanYiTianJi 64 trigrams image",   
+    version="1.0",   
+    author="sakura7301",   
+    desire_priority=99  
+)  
 class DuanYiTianJi:  
     def __init__(self):  
+        super().__init__()  # 确保调用父类的初始化  
         self.GUA_MAPPING = {  
             "乾": "乾为天",  
             "坤": "坤为地",  
@@ -78,8 +88,8 @@ class DuanYiTianJi:
             "泽火": "泽火革",  
             "泽水": "泽水困"  
         }  
-        self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
-        logger.info("[DuanYiTianJi] inited")
+        self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context  
+        logger.info("[DuanYiTianJi] inited")  
 
     def GuaTuRequest(self, query):  
         divination_keywords = ['卦图']  
@@ -101,7 +111,7 @@ class DuanYiTianJi:
         """  
         try:  
             input_text = input_text.replace('　', ' ').strip()  
-            gua_dir = "./image"
+            gua_dir = "./image"  
             files = os.listdir(gua_dir)  
             input_text = input_text.replace('卦图', '').strip()  
             target_file = None  
@@ -157,7 +167,7 @@ class DuanYiTianJi:
             current_time = time.time()  
             microseconds = int(str(current_time).split('.')[1][:6])  
             gen_random_num = microseconds % 64 + 1  
-            gua_dir = "./image" 
+            gua_dir = "./image"   
             files = os.listdir(gua_dir)  
             prefix = f"{gen_random_num:02d}_"  
             target_file = None  
@@ -181,23 +191,31 @@ class DuanYiTianJi:
             logger.error(f"错误：{str(e)}")  
             return None  
 
-    def on_handle_context(self, e_context: EventContext):
-        if e_context['context'].type != ContextType.TEXT:
-            return
-        content = e_context['context'].content
-        if self.GuaTuRequest(content):
-            reply = Reply()
-            reply.type = ReplyType.IMAGE
-            reply.content = self.GuaTu(content)
-            e_context['reply'] = reply
-            e_context.action = EventAction.BREAK_PASS # 事件结束，并跳过处理context的默认逻辑
-        elif self.GuaTuReDailyRequest(content):
-            reply = Reply()
-            reply.type = ReplyType.IMAGE
-            reply.content = self.GuaTuNum()
-            e_context['reply'] = reply
-            e_context.action = EventAction.BREAK_PASS # 事件结束，并跳过处理context的默认逻辑
+    def on_handle_context(self, e_context: EventContext):  
+        if e_context["context"].type not in [ContextType.TEXT]:  
+            return  
+        
+        content = e_context["context"].content.strip()  
+        logger.debug("[DuanYiTianJi] on_handle_context. content: %s" % content)  
 
-    def get_help_text(self, **kwargs):
-        help_text = "请按照以下格式：\n[每日一卦]：回复随机卦图\n[卦图+卦名]回复指定卦图\n"
+        if self.GuaTuRequest(content):  
+            logger.info("[DuanYiTianJi] 每日一卦")  
+            reply = Reply()  
+            image = self.GuaTu(content)  
+            reply.type = ReplyType.IMAGE if image else ReplyType.TEXT  
+            reply.content = image if image else "未找到卦图"  
+            e_context['reply'] = reply  
+            e_context.action = EventAction.BREAK_PASS  # 事件结束，并跳过处理context的默认逻辑  
+
+        elif self.GuaTuReDailyRequest(content):  
+            logger.info("[DuanYiTianJi] 卦图")  
+            reply = Reply()  
+            image = self.GuaTu(content)  
+            reply.type = ReplyType.IMAGE if image else ReplyType.TEXT  
+            reply.content = image if image else "未找到卦图"  
+            e_context['reply'] = reply  
+            e_context.action = EventAction.BREAK_PASS  # 事件结束，并跳过处理context的默认逻辑  
+
+    def get_help_text(self, **kwargs):  
+        help_text = "请按照以下格式：\n[每日一卦]：回复随机卦图\n[卦图+卦名]回复指定卦图\n"  
         return help_text
